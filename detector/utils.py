@@ -1,5 +1,6 @@
 import pandas as pd
 from pathlib import Path
+import numpy as np
 
 def get_path_data() -> Path:
     abs_path = Path(__file__).parents[1].absolute()
@@ -43,3 +44,14 @@ def load_data(source: str="xl-1542M",
         final_data[split] = pd.concat([data["true"], data["fake"]])
 
     return final_data
+
+# create a function to split datasets into subsets of small, medium and large texts
+def divide_frame(df: pd.DataFrame) -> tuple[pd.DataFrame]:
+    '''Return tuple of DataFrames with small, medium and large texts
+    split according to 1. and 3. quartile of text length distribution.'''
+    q = np.percentile(df.text_length, [25, 75])
+    q_1, q_3 = q[0], q[1]
+    df_small = df[df.text_length < q_1].reset_index(drop=True)
+    df_medium = df[df.text_length.between(q_1, q_3)].reset_index(drop=True)
+    df_large = df[df.text_length > q_3].reset_index(drop=True)
+    return df_small, df_medium, df_large
