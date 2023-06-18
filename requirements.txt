@@ -9,3 +9,6 @@ seaborn
 scikit-learn
 nltk
 tensorflow
+transformers
+datasets
+torch
