@@ -1,5 +1,6 @@
 raw_data/
 .env
+hidden_states/
 
 # OS generated files #
 ######################

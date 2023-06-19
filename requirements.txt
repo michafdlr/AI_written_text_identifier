@@ -9,6 +9,6 @@ seaborn
 scikit-learn
 nltk
 tensorflow
-transformers
+tensorflow-metal; sys_platform == 'darwin' and 'ARM' in platform_version # Mac M-chips
 datasets
 torch
