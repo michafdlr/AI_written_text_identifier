@@ -1,6 +1,8 @@
 raw_data/
 .env
-hidden_states/
+hidden_states*/
+nn_model*/
+trained_models/
 
 # OS generated files #
 ######################
