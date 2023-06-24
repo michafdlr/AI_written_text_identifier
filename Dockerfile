@@ -17,8 +17,8 @@ FROM python:3.10.10-buster
 
 # Copy everything we need into the image
 COPY baseline_model baseline_model
-COPY api api
-COPY main main
+COPY AI_written_text_identifier/api /api
+COPY baseline_model /app/main
 COPY requirements.txt requirements.txt
 COPY setup.py setup.py
 COPY .env .env
