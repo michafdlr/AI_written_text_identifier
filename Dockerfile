@@ -18,11 +18,11 @@ FROM python:3.10.10-buster
 # Copy everything we need into the image
 COPY baseline_model baseline_model
 COPY api api
-COPY scripts scripts
+COPY main main
 COPY requirements.txt requirements.txt
 COPY setup.py setup.py
 COPY .env .env
-COPY credentials.json credentials.json
+COPY ai-written-text-identifier-b821f44b8000.json ai-written-text-identifier-b821f44b8000.json
 
 # Install everything
 RUN pip install --upgrade pip
