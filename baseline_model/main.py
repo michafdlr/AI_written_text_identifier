@@ -7,7 +7,6 @@ from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.layers import Input, Embedding, LSTM, Dense
 from tensorflow.keras.models import Model
-from tensorflow.keras.callbacks import EarlyStopping
 import matplotlib.pyplot as plt
 import nltk
 import string
@@ -17,12 +16,8 @@ from nltk.stem.wordnet import WordNetLemmatizer
 from dotenv import load_dotenv
 
 load_dotenv()
-np.random.seed(42)
-tf.random.set_seed(42)
-
 def get_data_path():
     path_data = Path(os.getenv("PATH_DATA"))
-
     return path_data
 
 def load_data(path_data, n_rows_train=200_000, n_rows_val_test=10_000):
@@ -62,7 +57,6 @@ def clean_text(text):
 
         for pos in ["v", "n", "a", "r", "s"]:
             text = [WordNetLemmatizer().lemmatize(word, pos=pos) for word in text]
-
         return ' '.join(text)
 
     text = remove_numbers(lower(remove_punctuation(text)))
@@ -71,6 +65,7 @@ def clean_text(text):
     text_clean = lemmatize_text(tokens_clean)
 
     return text_clean.strip()
+
 def prepare_data_lstm(X_train, X_val, X_test):
 
     max_words = 2000
@@ -87,20 +82,22 @@ def prepare_data_lstm(X_train, X_val, X_test):
     return X_train_padded, X_val_padded, X_test_padded
 
 def train_lstm(X_train_padded, y_train, X_val_padded, y_val):
+
     num_classes = 2
     inputs = Input(shape=(100,))
     x = Embedding(input_dim=2000, output_dim=32)(inputs)
     x = LSTM(32)(x)
     outputs = Dense(num_classes, activation="softmax")(x)
+
     model = Model(inputs=inputs, outputs=outputs)
+
     model.compile(loss="sparse_categorical_crossentropy",
                   optimizer="adam",
                   metrics=["accuracy"])
-    early_stopping = EarlyStopping(monitor='val_loss', patience=3)
+
     model.fit(X_train_padded, y_train,
               batch_size=16, epochs=5,
-              validation_data=(X_val_padded, y_val),
-              callbacks=[early_stopping])
+              validation_data=(X_val_padded, y_val))
 
     return model
 
@@ -108,30 +105,19 @@ def evaluate_lstm(model, X_test_padded, y_test):
     accuracy = model.evaluate(X_test_padded, y_test)[1]
     print("LSTM accuracy:", accuracy)
 
-def plot_learning_curve_tf(model, X_train_padded, y_train, X_val_padded, y_val):
-    train_scores = []
-    val_scores = []
-    train_sizes = np.linspace(0.1, 1, 5)
+def predict(model, tokenizer, input_text):
 
-    for size in train_sizes:
-        slice_size = int(X_train_padded.shape[0] * size)
-        X_train_slice = X_train_padded[:slice_size, :]
-        y_train_slice = y_train[:slice_size]
-        model.fit(X_train_slice, y_train_slice, batch_size=16, epochs=5, verbose=0)
-        train_score = model.evaluate(X_train_slice, y_train_slice, verbose=0)[1]
-        val_score = model.evaluate(X_val_padded, y_val, verbose=0)[1]
-        train_scores.append(train_score)
-        val_scores.append(val_score)
+    input_data = pd.DataFrame({"text": [input_text]})
+    input_data["text"] = input_data["text"].apply(clean_text)
+    input_seq = tokenizer.texts_to_sequences(input_data.text)
+    input_padded = pad_sequences(input_seq, maxlen=100, padding="post")
+    prediction = model.predict(input_padded)
+    predicted_class = np.argmax(prediction, axis=-1)[0]
 
-    plt.plot(train_sizes, train_scores, label="Training Score")
-    plt.plot(train_sizes, val_scores, label="Validation Score")
-    plt.xlabel("Training examples")
-    plt.ylabel("Score")
-    plt.legend()
-    plt.grid()
-    plt.show()
+    return predicted_class
 
 def main():
+
     path_data = get_data_path()
     data_dict = load_data(path_data)
     data_train = data_dict["train"]
@@ -140,17 +126,25 @@ def main():
     data_train["text"] = data_train["text"].apply(clean_text)
     data_val["text"] = data_val["text"].apply(clean_text)
     data_test["text"] = data_test["text"].apply(clean_text)
+
     X_train = data_train[["text"]]
     X_val = data_val[["text"]]
     X_test = data_test[["text"]]
     y_train = data_train["AI"]
     y_val = data_val["AI"]
     y_test = data_test["AI"]
+
     X_train_padded, X_val_padded, X_test_padded = prepare_data_lstm(X_train, X_val, X_test)
 
     lstm_model = train_lstm(X_train_padded, y_train, X_val_padded, y_val)
     evaluate_lstm(lstm_model, X_test_padded, y_test)
-    plot_learning_curve_tf(lstm_model, X_train_padded, y_train, X_val_padded, y_val)
+
+
+    input_text = "This is a sample input text"
+    tokenizer = Tokenizer(num_words=2000, oov_token="<OOV>")
+    tokenizer.fit_on_texts(X_train.text)
+    prediction = predict(lstm_model, tokenizer, input_text)
+    print("Prediction for example input:", prediction)
 
 if __name__ == "__main__":
     main()
