@@ -1,4 +1,25 @@
+<<<<<<< HEAD
 # Standard python ignores
+=======
+raw_data/
+.env
+hidden_states/
+
+# OS generated files #
+######################
+.DS_Store
+__MACOSX
+# Jupiter Notebook #
+.pytest_cache
+__pycache__
+*checkpoint.ipynb
+*.ipynb_checkpoints
+
+# inteliJ #
+.idea
+*.gz
+*PKG-INFO
+>>>>>>> ccfef9d37c0bdd0fe133a7a4ec716808411a8dd6
 *.egg-info
 .coverage
 .ipynb_checkpoints
