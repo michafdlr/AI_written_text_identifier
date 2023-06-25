@@ -2,7 +2,10 @@ raw_data/
 .env
 hidden_states*/
 nn_model*/
-trained_models/
+trained_models*/
+gpt3_output/
+preprocessed_data*/
+encoded_data*/
 
 # OS generated files #
 ######################
