@@ -6,6 +6,7 @@ trained_models*/
 gpt3_output/
 preprocessed_data*/
 encoded_data*/
+extractors*/
 
 # OS generated files #
 ######################
