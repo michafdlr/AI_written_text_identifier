@@ -1,3 +1,10 @@
+<<<<<<< HEAD
+# Standard python ignores
+=======
+raw_data/
+.env
+hidden_states/
+
 # OS generated files #
 ######################
 .DS_Store
