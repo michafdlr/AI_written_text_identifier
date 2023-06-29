@@ -1,11 +1,3 @@
-<<<<<<< HEAD
-# Standard python ignores
-raw_data/
-.env
-hidden_states/
-
-=======
->>>>>>> 04eb5687acdb7ee3a2271d08499a3d0278e04653
 # OS generated files #
 ######################
 .DS_Store
