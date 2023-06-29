@@ -21,7 +21,8 @@ COPY AI_written_text_identifier/api /api
 COPY baseline_model /app/main
 COPY requirements.txt requirements.txt
 COPY setup.py setup.py
-COPY ai-written-text-identifier-b821f44b8000.json ai-written-text-identifier-b821f44b8000.json
+#COPY .env .env
+#COPY ai-written-text-identifier-b821f44b8000.json ai-written-text-identifier-b821f44b8000.json
 
 # Install everything
 RUN pip install --upgrade pip
