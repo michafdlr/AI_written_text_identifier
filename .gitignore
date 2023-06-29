@@ -1,8 +1,11 @@
+<<<<<<< HEAD
 # Standard python ignores
 raw_data/
 .env
 hidden_states/
 
+=======
+>>>>>>> 04eb5687acdb7ee3a2271d08499a3d0278e04653
 # OS generated files #
 ######################
 .DS_Store
@@ -62,4 +65,10 @@ secrets.toml
 *.json
 
 # User defined extras
-# Complete to your desire
+hidden_states*/
+nn_model*/
+trained_models*/
+gpt3_output/
+preprocessed_data*/
+encoded_data*/
+extractors*/
