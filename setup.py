@@ -5,7 +5,7 @@ with open('requirements.txt') as f:
     content = f.readlines()
 requirements = [x.strip() for x in content if 'git+' not in x]
 
-setup(name='AI_written_text_identifier',
+setup(name='ai_written_text_identifier',
       version="1.0",
       description="Detect AI written text",
       packages=find_packages(),
