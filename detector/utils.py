@@ -1,10 +1,11 @@
 import pandas as pd
+import os
 from pathlib import Path
 import numpy as np
 
 def get_path_data() -> Path:
-    abs_path = Path(__file__).parents[1].absolute()
-    return abs_path / "raw_data"
+    #abs_path = Path(__file__).parents[1].absolute()
+    return Path(os.environ.get("PATH_DATA"))
 
 def load_data(source: str="xl-1542M",
               truncation: bool=True,
