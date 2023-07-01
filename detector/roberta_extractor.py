@@ -20,7 +20,7 @@ transformers.utils.logging.set_verbosity_error()
 
 
 def prepare_datasets():
-    train_size = os.environ.get("TRAIN_SIZE")
+    train_size = int(os.environ.get("TRAIN_SIZE"))
     cache_path = Path(os.environ.get("LOCAL_REGISTRY_PATH"))
     gpt_path = cache_path / "gpt3_output"
 
@@ -80,7 +80,7 @@ def prepare_datasets():
 def create_tokenizer(model_ckpt: str = "roberta-large"):
     cache_path = Path(os.environ.get("LOCAL_REGISTRY_PATH"))
     if not (cache_path / f"extractors_tokenizer_{model_ckpt}").is_dir():
-        print("Creating tokenizer...")
+        print("🕑Creating tokenizer...\n")
         tokenizer = AutoTokenizer.from_pretrained(model_ckpt)
         tokenizer.save_pretrained(cache_path / f"extractors_tokenizer_{model_ckpt}")
         print(f"✅Tokenizer saved in {cache_path}!\n")
@@ -210,7 +210,7 @@ def train_model(model_ckpt: str = "roberta-large",
                     f"{model_head}_clf_best_{model_ckpt}.joblib")
                 print(f"✅Best model trained and saved in {cache_path}!\n")
             else:
-                print("👎🏽New test score is not better than previous best score!\n")
+                print(f"👎🏽New test score {score} is not better than previous best score!\n")
 
         if model_head == "ridge":
             ridge_clf = RidgeClassifierCV(alphas=ridge_alpha, cv=split)
@@ -229,7 +229,7 @@ def train_model(model_ckpt: str = "roberta-large",
                     f"{model_head}_clf_best_{model_ckpt}.joblib")
                 print(f"✅Best model trained and saved in {cache_path}!\n")
             else:
-                print("👎🏽New test score is not better than previous best score!\n")
+                print(f"👎🏽New test score {score} is not better than previous best score!\n")
 
     elif model_head == "nn":
         print(f"🕑Training model with model head {model_head}...\n")
@@ -267,7 +267,7 @@ def train_model(model_ckpt: str = "roberta-large",
                         callbacks=[es])
         score = nn_model.evaluate(X_test, y_test)[1]
         if score > scores_dict["nn"]:
-            print(f"🟢New test score is {score} which is {score-scores_dict['nn']:.2f} better than previous best score!\n")
+            print(f"🟢New test score is {score} which is {score-scores_dict['nn']:.4f} better than previous best score!\n")
             scores_dict["nn"] = score
             with open(cache_path/"model_scores/scores_dict.pkl", 'wb') as f:
                 pickle.dump(scores_dict, f)
@@ -276,7 +276,7 @@ def train_model(model_ckpt: str = "roberta-large",
             best_model.save(cache_path/f"nn_model_{model_ckpt}_{train_size}")
             print(f"✅Best model trained and saved in {cache_path}!\n")
         else:
-            print("👎🏽New test score is not better than previous best score!\n")
+            print(f"👎🏽New test score {score} is {scores_dict['nn']-score:.4f} worse than previous best score!\n")
     else:
         raise ValueError("❌model_head must be 'lr', 'ridge' or 'nn'!")
     return None
