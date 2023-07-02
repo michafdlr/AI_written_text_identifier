@@ -118,15 +118,16 @@ def instantiate_extractor(model_ckpt: str = "roberta-large"):
 def get_hidden_states(model_ckpt: str = "roberta-large"):
     cache_path = Path(os.environ.get("LOCAL_REGISTRY_PATH"))
     train_size = os.environ.get("TRAIN_SIZE")
+    def extract_hidden_states(batch):
+            inputs = {k: v for k,v in batch.items() if k in tokenizer.model_input_names}
+            last_hidden_state = model(**inputs).last_hidden_state
+            return {"hidden_state": last_hidden_state[:, 0].numpy()}
     if not (cache_path / f"hidden_states_{model_ckpt}_{train_size}").is_dir():
         print("🕑Extracting hidden states...\n")
         tokenizer = create_tokenizer(model_ckpt=model_ckpt)
         ds_encoded = encode_data(model_ckpt=model_ckpt)
+        ds_encoded.set_format("tensorflow", columns=["input_ids", "attention_mask", "AI"])
         model = instantiate_extractor(model_ckpt=model_ckpt)
-        def extract_hidden_states(batch):
-            inputs = {k: v for k,v in batch.items() if k in tokenizer.model_input_names}
-            last_hidden_state = model(**inputs).last_hidden_state
-            return {"hidden_state": last_hidden_state[:, 0].numpy()}
         ds_hidden = ds_encoded.map(extract_hidden_states, batched=True, batch_size=50)
         ds_hidden.save_to_disk(cache_path / f'hidden_states_{model_ckpt}_{train_size}')
         print(f"✅Hidden states saved in {cache_path}!\n")
