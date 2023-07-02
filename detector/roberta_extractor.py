@@ -214,7 +214,7 @@ def train_model(model_ckpt: str = "roberta-large",
             ridge_clf = RidgeClassifierCV(alphas=ridge_alpha, cv=split)
             print("🕑Search in progress...\n")
             ridge_clf.fit(X_search, y_search)
-            print(f"👍🏽Best params: {ridge_clf.best_params_}\n")
+            print(f"👍🏽Best params: {ridge_clf.alpha_}\n")
             best_model = ridge_clf
             score = best_model.score(X_test, y_test)
             if score > scores_dict["ridge"]:
