@@ -3,20 +3,17 @@ import pickle
 from pathlib import Path
 import transformers
 from transformers import AutoTokenizer, TFAutoModel
-from datasets import Dataset, DatasetDict, load_from_disk, load_dataset
-from detector.utils import load_data, divide_frame
+from datasets import Dataset, DatasetDict, load_from_disk
+from detector.utils import load_data
 import tensorflow as tf
 from keras import (layers, optimizers, callbacks,
                     Model, losses, metrics, Input, models)
-import torch
+import torch # needed for training huggingface models
 import pandas as pd
 import numpy as np
 from sklearn.linear_model import LogisticRegression, RidgeClassifierCV
 from sklearn.model_selection import GridSearchCV, PredefinedSplit
 from joblib import dump, load
-from tqdm import tqdm
-
-transformers.utils.logging.set_verbosity_error()
 
 
 def prepare_datasets():
