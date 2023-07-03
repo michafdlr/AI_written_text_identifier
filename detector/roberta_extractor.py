@@ -99,7 +99,7 @@ def encode_data(model_ckpt: str = "roberta-large"):
         ds_encoded.save_to_disk(cache_path / f'encoded_data_{train_size}')
         print(f"✅Encoded data saved in {cache_path}!\n")
     print("🕑Loading encoded data from cache...\n")
-    ds_encoded = load_from_disk(cache_path / f'encoded_data_{train_size}')
+    ds_encoded = load_from_disk(cache_path / f'encoded_data_{model_ckpt}_{train_size}')
     print("✅Encoded data loaded from cache!\n")
     return ds_encoded
 
