@@ -13,9 +13,7 @@ import string
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem.wordnet import WordNetLemmatizer
-from dotenv import load_dotenv
 
-load_dotenv()
 def get_data_path():
     path_data = Path(os.getenv("PATH_DATA"))
     return path_data

@@ -55,6 +55,9 @@ models/
 .credentials
 secrets.toml
 *.json
+.envrc
+.env.sample.yaml
+.env.sample
 
 # User defined extras
 hidden_states*/

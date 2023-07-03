@@ -93,4 +93,4 @@ docker_deploy:
 		--image $(GCR_MULTI_REGION)/$(PROJECT_ID)/$(DOCKER_IMAGE_NAME):prod \
 		--platform managed \
 		--region europe-west1 \
-		--env-vars-file .env.yaml
+		--env-vars-file .env.sample.yaml
