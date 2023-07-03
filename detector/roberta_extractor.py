@@ -91,12 +91,12 @@ def encode_data(model_ckpt: str = "roberta-large"):
     cache_path = Path(os.environ.get("LOCAL_REGISTRY_PATH"))
     def tokenize(batch):
         return tokenizer(batch["text"], padding=True, truncation=True)
-    if not (cache_path / f"encoded_data_{train_size}").is_dir():
+    if not (cache_path / f"encoded_data_{model_ckpt}_{train_size}").is_dir():
         print("🕑Encoding data...\n")
         ds_dict = prepare_datasets()
         tokenizer = create_tokenizer(model_ckpt=model_ckpt)
         ds_encoded = ds_dict.map(tokenize, batched=True, batch_size=10_000)
-        ds_encoded.save_to_disk(cache_path / f'encoded_data_{train_size}')
+        ds_encoded.save_to_disk(cache_path / f'encoded_data_{model_ckpt}_{train_size}')
         print(f"✅Encoded data saved in {cache_path}!\n")
     print("🕑Loading encoded data from cache...\n")
     ds_encoded = load_from_disk(cache_path / f'encoded_data_{model_ckpt}_{train_size}')
