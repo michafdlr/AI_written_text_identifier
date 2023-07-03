@@ -16,3 +16,4 @@ datasets
 torch
 uvicorn
 FastAPI
+google-cloud-storage
