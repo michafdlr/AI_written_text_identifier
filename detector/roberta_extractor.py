@@ -76,13 +76,13 @@ def prepare_datasets():
 
 def create_tokenizer(model_ckpt: str = "roberta-large"):
     cache_path = Path(os.environ.get("LOCAL_REGISTRY_PATH"))
-    if not (cache_path / f"extractors_tokenizer_{model_ckpt}").is_dir():
+    if not (cache_path / f"extractors_tokenizer_{model_ckpt.replace('/', '-')}").is_dir():
         print("🕑Creating tokenizer...\n")
         tokenizer = AutoTokenizer.from_pretrained(model_ckpt)
-        tokenizer.save_pretrained(cache_path / f"extractors_tokenizer_{model_ckpt}")
+        tokenizer.save_pretrained(cache_path / f"extractors_tokenizer_{model_ckpt.replace('/', '-')}")
         print(f"✅Tokenizer saved in {cache_path}!\n")
     print("🕑Loading tokenizer from cache...\n")
-    tokenizer = AutoTokenizer.from_pretrained(cache_path / f"extractors_tokenizer_{model_ckpt}")
+    tokenizer = AutoTokenizer.from_pretrained(cache_path / f"extractors_tokenizer_{model_ckpt.replace('/', '-')}")
     print("✅Tokenizer loaded from cache!\n")
     return tokenizer
 
@@ -91,27 +91,27 @@ def encode_data(model_ckpt: str = "roberta-large"):
     cache_path = Path(os.environ.get("LOCAL_REGISTRY_PATH"))
     def tokenize(batch):
         return tokenizer(batch["text"], padding=True, truncation=True)
-    if not (cache_path / f"encoded_data_{model_ckpt}_{train_size}").is_dir():
+    if not (cache_path / f"encoded_data_{model_ckpt.replace('/', '-')}_{train_size}").is_dir():
         print("🕑Encoding data...\n")
         ds_dict = prepare_datasets()
         tokenizer = create_tokenizer(model_ckpt=model_ckpt)
         ds_encoded = ds_dict.map(tokenize, batched=True, batch_size=10_000)
-        ds_encoded.save_to_disk(cache_path / f'encoded_data_{model_ckpt}_{train_size}')
+        ds_encoded.save_to_disk(cache_path / f'encoded_data_{model_ckpt.replace("/", "-")}_{train_size}')
         print(f"✅Encoded data saved in {cache_path}!\n")
     print("🕑Loading encoded data from cache...\n")
-    ds_encoded = load_from_disk(cache_path / f'encoded_data_{model_ckpt}_{train_size}')
+    ds_encoded = load_from_disk(cache_path / f'encoded_data_{model_ckpt.replace("/", "-")}_{train_size}')
     print("✅Encoded data loaded from cache!\n")
     return ds_encoded
 
 def instantiate_extractor(model_ckpt: str = "roberta-large"):
     cache_path = Path(os.environ.get("LOCAL_REGISTRY_PATH"))
-    if not (cache_path / f"extractors_model_{model_ckpt}").is_dir():
+    if not (cache_path / f"extractors_model_{model_ckpt.replace('/', '-')}").is_dir():
         print("🕑Instantiating extractor...\n")
         model = TFAutoModel.from_pretrained(model_ckpt, from_pt=True)
-        model.save_pretrained(cache_path / f"extractors_model_{model_ckpt}")
+        model.save_pretrained(cache_path / f"extractors_model_{model_ckpt.replace('/', '-')}")
         print(f"✅Extractor model saved in {cache_path}!\n")
     print("🕑Loading extractor model from cache...\n")
-    model = TFAutoModel.from_pretrained(cache_path / f"extractors_model_{model_ckpt}")
+    model = TFAutoModel.from_pretrained(cache_path / f"extractors_model_{model_ckpt.replace('/', '-')}")
     print("✅Extractor model loaded from cache!\n")
     return model
 
@@ -122,17 +122,17 @@ def get_hidden_states(model_ckpt: str = "roberta-large"):
             inputs = {k: v for k,v in batch.items() if k in tokenizer.model_input_names}
             last_hidden_state = model(**inputs).last_hidden_state
             return {"hidden_state": last_hidden_state[:, 0].numpy()}
-    if not (cache_path / f"hidden_states_{model_ckpt}_{train_size}").is_dir():
+    if not (cache_path / f"hidden_states_{model_ckpt.replace('/', '-')}_{train_size}").is_dir():
         print("🕑Extracting hidden states...\n")
         tokenizer = create_tokenizer(model_ckpt=model_ckpt)
         ds_encoded = encode_data(model_ckpt=model_ckpt)
         ds_encoded.set_format("tensorflow", columns=["input_ids", "attention_mask", "AI"])
         model = instantiate_extractor(model_ckpt=model_ckpt)
         ds_hidden = ds_encoded.map(extract_hidden_states, batched=True, batch_size=50)
-        ds_hidden.save_to_disk(cache_path / f'hidden_states_{model_ckpt}_{train_size}')
+        ds_hidden.save_to_disk(cache_path / f"hidden_states_{model_ckpt.replace('/', '-')}_{train_size}")
         print(f"✅Hidden states saved in {cache_path}!\n")
     print("🕑Loading hidden states from cache...\n")
-    ds_hidden = load_from_disk(cache_path / f'hidden_states_{model_ckpt}_{train_size}')
+    ds_hidden = load_from_disk(cache_path / f"hidden_states_{model_ckpt.replace('/', '-')}_{train_size}")
     print("✅Hidden states loaded from cache!\n")
     return ds_hidden
 
@@ -170,14 +170,17 @@ def train_model(model_ckpt: str = "roberta-large",
     y_search = np.hstack((y_train, y_val))
     split = PredefinedSplit([-1]*X_train.shape[0]+[0]*X_val.shape[0])
 
-    if not any((cache_path/"model_scores").iterdir()):
+    Path(cache_path / f"model_scores_{model_ckpt.replace('/', '-')}_{train_size}").mkdir(parents=True, exist_ok=True)
+    Path(cache_path / f"trained_models_{train_size}").mkdir(parents=True, exist_ok=True)
+
+    if not any((cache_path/f"model_scores_{model_ckpt.replace('/', '-')}_{train_size}").iterdir()):
         scores_dict = {"lr": 0,
                         "ridge": 0,
                         "nn": 0}
-        with open(cache_path/"model_scores/scores_dict.pkl", 'wb') as f:
+        with open(cache_path/f"model_scores_{model_ckpt.replace('/', '-')}_{train_size}/scores_dict.pkl", 'wb') as f:
             pickle.dump(scores_dict, f)
     else:
-        with open(cache_path/"model_scores/scores_dict.pkl", 'rb') as f:
+        with open(cache_path/f"model_scores_{model_ckpt.replace('/', '-')}_{train_size}/scores_dict.pkl", 'rb') as f:
             scores_dict = pickle.load(f)
 
     # train model
@@ -201,11 +204,11 @@ def train_model(model_ckpt: str = "roberta-large",
             if score > scores_dict["lr"]:
                 print(f"🟢New test score is {score} which is {score-scores_dict['lr']:.2f} better than previous best score!\n")
                 scores_dict["lr"] = score
-                with open(cache_path/"model_scores/scores_dict.pkl", 'wb') as f:
+                with open(cache_path/f"model_scores_{model_ckpt.replace('/', '-')}_{train_size}/scores_dict.pkl", 'wb') as f:
                     pickle.dump(scores_dict, f)
                 print("✅Best score saved!")
                 dump(best_model, cache_path / f"trained_models_{train_size}" /
-                    f"{model_head}_clf_best_{model_ckpt}.joblib")
+                    f"{model_head}_clf_best_{model_ckpt.replace('/', '-')}.joblib")
                 print(f"✅Best model trained and saved in {cache_path}!\n")
             else:
                 print(f"👎🏽New test score {score} is not better than previous best score!\n")
@@ -220,11 +223,11 @@ def train_model(model_ckpt: str = "roberta-large",
             if score > scores_dict["ridge"]:
                 print(f"🟢New test score is {score} which is {score-scores_dict['ridge']:.2f} better than previous best score!\n")
                 scores_dict["ridge"] = score
-                with open(cache_path/"model_scores/scores_dict.pkl", 'wb') as f:
+                with open(cache_path/f"model_scores_{model_ckpt.replace('/', '-')}_{train_size}/scores_dict.pkl", 'wb') as f:
                     pickle.dump(scores_dict, f)
                 print("✅Best score saved!")
                 dump(best_model, cache_path / f"trained_models_{train_size}" /
-                    f"{model_head}_clf_best_{model_ckpt}.joblib")
+                    f"{model_head}_clf_best_{model_ckpt.replace('/', '-')}.joblib")
                 print(f"✅Best model trained and saved in {cache_path}!\n")
             else:
                 print(f"👎🏽New test score {score} is not better than previous best score!\n")
@@ -267,11 +270,11 @@ def train_model(model_ckpt: str = "roberta-large",
         if score > scores_dict["nn"]:
             print(f"🟢New test score is {score} which is {score-scores_dict['nn']:.4f} better than previous best score!\n")
             scores_dict["nn"] = score
-            with open(cache_path/"model_scores/scores_dict.pkl", 'wb') as f:
+            with open(cache_path/f"model_scores_{model_ckpt.replace('/', '-')}_{train_size}/scores_dict.pkl", 'wb') as f:
                 pickle.dump(scores_dict, f)
             print("✅Best score saved!")
             best_model = nn_model
-            best_model.save(cache_path/f"nn_model_{model_ckpt}_{train_size}")
+            best_model.save(cache_path/f"nn_model_{model_ckpt.replace('/', '-')}_{train_size}")
             print(f"✅Best model trained and saved in {cache_path}!\n")
         else:
             print(f"👎🏽New test score {score} is {scores_dict['nn']-score:.4f} worse than previous best score!\n")
@@ -298,7 +301,7 @@ def get_prediction(text_input: str=get_demo_text(),
     "distilbert-base-uncased", and "roberta-large".
     ---
     train_size: size of the training set used for training the model. Options
-    are 70_000 and 40_000.
+    are 100_000, 70_000, and 40_000.
     ---
     model_head: model to be used for classification. Options are "nn"
     for neural network, "lr" for logistic regression, and
@@ -316,22 +319,22 @@ def get_prediction(text_input: str=get_demo_text(),
     proba = None
     class_pred = None
     if model_head == "nn":
-        if not (cache_path / f"nn_model_{model_ckpt}_{train_size}").is_dir():
+        if not (cache_path / f"nn_model_{model_ckpt.replace('/', '-')}_{train_size}").is_dir():
             print(f"🔴Model with {model_head} not found. Training model...\n")
             train_model(model_ckpt=model_ckpt, model_head=model_head)
-        nn_model = models.load_model(cache_path/f"nn_model_{model_ckpt}_{train_size}")
+        nn_model = models.load_model(cache_path/f"nn_model_{model_ckpt.replace('/', '-')}_{train_size}")
         proba = nn_model.predict(hidden_states, verbose=0)[0][0]
     elif model_head == "lr":
-        if not (cache_path / f"trained_models_{train_size}/lr_clf_best_{model_ckpt}.joblib").is_file():
+        if not (cache_path / f"trained_models_{train_size}/lr_clf_best_{model_ckpt.replace('/', '-')}.joblib").is_file():
             print(f"🔴Model with {model_head} not found. Training model...\n")
             train_model(model_ckpt=model_ckpt, model_head=model_head)
-        lr_clf_best = load(f"{cache_path}/trained_models_{train_size}/lr_clf_best_{model_ckpt}.joblib")
+        lr_clf_best = load(f"{cache_path}/trained_models_{train_size}/lr_clf_best_{model_ckpt.replace('/', '-')}.joblib")
         proba = lr_clf_best.predict_proba(hidden_states)[0][1]
     elif model_head == "ridge":
-        if not (cache_path / f"trained_models_{train_size}/ridge_clf_best_{model_ckpt}.joblib").is_file():
+        if not (cache_path / f"trained_models_{train_size}/ridge_clf_best_{model_ckpt.replace('/', '-')}.joblib").is_file():
             print(f"🔴Model with {model_head} not found. Training model...\n")
             train_model(model_ckpt=model_ckpt, model_head=model_head)
-        ridge_clf = load(f"{cache_path}/trained_models_{train_size}/ridge_clf_best_{model_ckpt}.joblib")
+        ridge_clf = load(f"{cache_path}/trained_models_{train_size}/ridge_clf_best_{model_ckpt.replace('/', '-')}.joblib")
         decision = ridge_clf.decision_function(hidden_states)[0]
         proba = np.exp(decision)/(np.exp(-decision)+np.exp(decision))
     else:
