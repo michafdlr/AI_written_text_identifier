@@ -1,8 +1,26 @@
 import pandas as pd
 import numpy as np
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from ai_written_text_identifier.utils import load_from_gcs
+from transformers import AutoTokenizer, TFAutoModel
+from joblib import load
+
+TOKENIZER = "roberta-large"
+EXTRACTOR = "roberta-large"
+
+
+app = FastAPI()
+
+# Allowing all middleware is optional, but good practice for dev purposes
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
+
 
 def pred(text, tokenizer, extractor, model):
     '''outputs the probability of the text being AI written
@@ -31,9 +49,35 @@ def pred(text, tokenizer, extractor, model):
     print(f'Probability of text being AI written: {proba:.2f}. \nThe prediction therfore is that the text is {class_pred}.')
     return proba, class_pred
 
-if __name__ == "__main__":
-    #app = FastAPI()
-    tokenizer = load_from_gcs('tokenizer', 'extractors_tokenizer_roberta-large')
-    extractor = load_from_gcs('extractor', 'roberta-large')
-    model = load_from_gcs('model', 'lr_clf_best_roberta-large')
-    pred("this is a huge hue gkrsg  popjdwdwd d test!", tokenizer, extractor, model)
+@app.get("/predict")
+def predict(
+        text: str,
+        model_name: str):
+    """
+    Make a single prediction depending in a tokenizer, an extracotr and a model among possible values.
+    """
+    try:
+        assert model_name in ['logistic regression',
+                          'ridge classifier',
+                          'neural network'
+                          ]
+    except:
+        print("You should choose a model among 'logistic regression', 'ridge classifier', 'neural network'")
+
+    tokenizer = AutoTokenizer.from_pretrained(os.path.join(os.getcwd(),"tokenizers", TOKENIZER))
+    extractor = TFAutoModel.from_pretrained(os.path.join(os.getcwd(),"extractors", EXTRACTOR))
+    model = load(os.path.join(os.getcwd(),"models", f"{model_name.replace(' ', '-')}_{EXTRACTOR}.joblib"))
+
+    proba, class_pred =  pred(text, tokenizer, extractor, model)
+
+    return {
+        'proba': proba,
+        'class_pred': class_pred
+    }
+
+
+@app.get("/")
+def root():
+    return {
+    'greeting': 'Hello'
+}

@@ -40,7 +40,6 @@ raw_data/
 data/
 
 # Saved models
-models/
 *.joblib
 *.h5
 
@@ -63,4 +62,3 @@ trained_models*/
 gpt3_output/
 preprocessed_data*/
 encoded_data*/
-extractors*/
