@@ -16,7 +16,7 @@ __pycache__
 .coverage
 .ipynb_checkpoints
 **/__pycache__/
-.python-version
+#.python-version
 *.pyc
 **/build
 
@@ -40,8 +40,8 @@ raw_data/
 data/
 
 # Saved models
-*.joblib
-*.h5
+#*.joblib
+#*.h5
 
 # Any pickle files
 *.pickle
@@ -49,11 +49,11 @@ data/
 *.pkl
 
 # Credentials (or files with potentially credentials inside)
-.env
-.env.yaml
+#.env
+#.env.yaml
 .credentials
 secrets.toml
-*.json
+#*.json
 
 # User defined extras
 hidden_states*/
