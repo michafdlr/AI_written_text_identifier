@@ -74,7 +74,7 @@ def prepare_datasets():
     print("✅Datasets loaded from cache!\n")
     return ds_dict
 
-def create_tokenizer(model_ckpt: str = "roberta-large"):
+def create_tokenizer(model_ckpt: str = 'google/electra-large-discriminator'):
     cache_path = Path(os.environ.get("LOCAL_REGISTRY_PATH"))
     if not (cache_path / f"extractors_tokenizer_{model_ckpt.replace('/', '-')}").is_dir():
         print("🕑Creating tokenizer...\n")
@@ -86,7 +86,7 @@ def create_tokenizer(model_ckpt: str = "roberta-large"):
     print("✅Tokenizer loaded from cache!\n")
     return tokenizer
 
-def encode_data(model_ckpt: str = "roberta-large"):
+def encode_data(model_ckpt: str = 'google/electra-large-discriminator'):
     train_size = os.environ.get("TRAIN_SIZE")
     cache_path = Path(os.environ.get("LOCAL_REGISTRY_PATH"))
     def tokenize(batch):
@@ -103,7 +103,7 @@ def encode_data(model_ckpt: str = "roberta-large"):
     print("✅Encoded data loaded from cache!\n")
     return ds_encoded
 
-def instantiate_extractor(model_ckpt: str = "roberta-large"):
+def instantiate_extractor(model_ckpt: str = 'google/electra-large-discriminator'):
     cache_path = Path(os.environ.get("LOCAL_REGISTRY_PATH"))
     if not (cache_path / f"extractors_model_{model_ckpt.replace('/', '-')}").is_dir():
         print("🕑Instantiating extractor...\n")
@@ -115,7 +115,7 @@ def instantiate_extractor(model_ckpt: str = "roberta-large"):
     print("✅Extractor model loaded from cache!\n")
     return model
 
-def get_hidden_states(model_ckpt: str = "roberta-large"):
+def get_hidden_states(model_ckpt: str = 'google/electra-large-discriminator'):
     cache_path = Path(os.environ.get("LOCAL_REGISTRY_PATH"))
     train_size = os.environ.get("TRAIN_SIZE")
     def extract_hidden_states(batch):
@@ -136,7 +136,7 @@ def get_hidden_states(model_ckpt: str = "roberta-large"):
     print("✅Hidden states loaded from cache!\n")
     return ds_hidden
 
-def train_model(model_ckpt: str = "roberta-large",
+def train_model(model_ckpt: str = 'google/electra-large-discriminator',
                 model_head: str = "lr",
                 lr_C: list=[2**k for k in range(1,6)],
                 ridge_alpha: list=[0.03, 0.035, 0.04, 0.045],
@@ -282,23 +282,27 @@ def train_model(model_ckpt: str = "roberta-large",
         raise ValueError("❌model_head must be 'lr', 'ridge' or 'nn'!")
     return None
 
-def get_demo_text():
+def get_demo_text(api: bool=False):
     '''returns a random text from the demo set'''
-    cache_path = Path(os.environ.get("LOCAL_REGISTRY_PATH"))
-    demo_path = cache_path / "gpt3_output" / "demo_data.csv"
-    df_demo = pd.read_csv(demo_path).reset_index(drop=True)
+    if api:
+        df_demo = pd.read_csv("models/gpt3_output/demo_data.csv").reset_index(drop=True)
+    else:
+        cache_path = Path(os.environ.get("LOCAL_REGISTRY_PATH"))
+        demo_path = cache_path / "gpt3_output" / "demo_data.csv"
+        df_demo = pd.read_csv(demo_path).reset_index(drop=True)
     return df_demo.sample(n=1)["text"].values[0]
 
-def get_prediction(text_input: str=get_demo_text(),
-                   model_ckpt: str="roberta-large",
+def get_prediction(text_input: str,
+                   model_ckpt: str='google/electra-large-discriminator',
                    train_size: int=70_000,
-                   model_head: str="nn") -> tuple[float, str]:
+                   model_head: str="nn",
+                   api: bool=False) -> tuple[float, str]:
     '''outputs the probability of the text being AI written
     ---
     text_input: text to be classified
     ---
     model_ckpt: model to be used for feature extraction. Options are
-    "distilbert-base-uncased", and "roberta-large".
+    "google/electra-large-discriminator", and "roberta-large".
     ---
     train_size: size of the training set used for training the model. Options
     are 100_000, 70_000, and 40_000.
@@ -307,10 +311,14 @@ def get_prediction(text_input: str=get_demo_text(),
     for neural network, "lr" for logistic regression, and
     "ridge" for ridge classifier.
     '''
-    cache_path = Path(os.environ.get("LOCAL_REGISTRY_PATH"))
-    # instantiate tokenizer and model
-    tokenizer = create_tokenizer(model_ckpt=model_ckpt)
-    model = instantiate_extractor(model_ckpt=model_ckpt)
+    if not api:
+        cache_path = Path(os.environ.get("LOCAL_REGISTRY_PATH"))
+        # instantiate tokenizer and model
+        tokenizer = create_tokenizer(model_ckpt=model_ckpt)
+        model = instantiate_extractor(model_ckpt=model_ckpt)
+    else:
+        tokenizer = AutoTokenizer.from_pretrained(Path(f"models/extractors_tokenizer_{model_ckpt.replace('/', '-')}"))
+        model = TFAutoModel.from_pretrained(Path(f"models/extractors_model_{model_ckpt.replace('/', '-')}"))
     # extract features
     inputs = tokenizer(text_input.replace("\n", " "), return_tensors="tf")
     outputs = model(**inputs)
@@ -319,22 +327,31 @@ def get_prediction(text_input: str=get_demo_text(),
     proba = None
     class_pred = None
     if model_head == "nn":
-        if not (cache_path / f"nn_model_{model_ckpt.replace('/', '-')}_{train_size}").is_dir():
-            print(f"🔴Model with {model_head} not found. Training model...\n")
-            train_model(model_ckpt=model_ckpt, model_head=model_head)
-        nn_model = models.load_model(cache_path/f"nn_model_{model_ckpt.replace('/', '-')}_{train_size}")
+        if api:
+            nn_model = models.load_model(Path(f"models/nn_model_{model_ckpt.replace('/', '-')}_{train_size}"))
+        else:
+            if not (cache_path / f"nn_model_{model_ckpt.replace('/', '-')}_{train_size}").is_dir():
+                print(f"🔴Model with {model_head} not found. Training model...\n")
+                train_model(model_ckpt=model_ckpt, model_head=model_head)
+            nn_model = models.load_model(cache_path/f"nn_model_{model_ckpt.replace('/', '-')}_{train_size}")
         proba = nn_model.predict(hidden_states, verbose=0)[0][0]
     elif model_head == "lr":
-        if not (cache_path / f"trained_models_{train_size}/lr_clf_best_{model_ckpt.replace('/', '-')}.joblib").is_file():
-            print(f"🔴Model with {model_head} not found. Training model...\n")
-            train_model(model_ckpt=model_ckpt, model_head=model_head)
-        lr_clf_best = load(f"{cache_path}/trained_models_{train_size}/lr_clf_best_{model_ckpt.replace('/', '-')}.joblib")
+        if api:
+            lr_clf_best = load(Path(f"models/trained_models_{train_size}/lr_clf_best_{model_ckpt.replace('/', '-')}.joblib"))
+        else:
+            if not (cache_path / f"trained_models_{train_size}/lr_clf_best_{model_ckpt.replace('/', '-')}.joblib").is_file():
+                print(f"🔴Model with {model_head} not found. Training model...\n")
+                train_model(model_ckpt=model_ckpt, model_head=model_head)
+            lr_clf_best = load(f"{cache_path}/trained_models_{train_size}/lr_clf_best_{model_ckpt.replace('/', '-')}.joblib")
         proba = lr_clf_best.predict_proba(hidden_states)[0][1]
     elif model_head == "ridge":
-        if not (cache_path / f"trained_models_{train_size}/ridge_clf_best_{model_ckpt.replace('/', '-')}.joblib").is_file():
-            print(f"🔴Model with {model_head} not found. Training model...\n")
-            train_model(model_ckpt=model_ckpt, model_head=model_head)
-        ridge_clf = load(f"{cache_path}/trained_models_{train_size}/ridge_clf_best_{model_ckpt.replace('/', '-')}.joblib")
+        if api:
+            ridge_clf = load(Path(f"models/trained_models_{train_size}/ridge_clf_best_{model_ckpt.replace('/', '-')}.joblib"))
+        else:
+            if not (cache_path / f"trained_models_{train_size}/ridge_clf_best_{model_ckpt.replace('/', '-')}.joblib").is_file():
+                print(f"🔴Model with {model_head} not found. Training model...\n")
+                train_model(model_ckpt=model_ckpt, model_head=model_head)
+            ridge_clf = load(f"{cache_path}/trained_models_{train_size}/ridge_clf_best_{model_ckpt.replace('/', '-')}.joblib")
         decision = ridge_clf.decision_function(hidden_states)[0]
         proba = np.exp(decision)/(np.exp(-decision)+np.exp(decision))
     else:
